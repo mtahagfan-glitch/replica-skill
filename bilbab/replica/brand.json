@@ -1,0 +1,6 @@
+{
+  "name": "بالباب",
+  "avoid": ["PikMyKid", "Pikmykid", "Pik My Kid", "PickMyKid"],
+  "domains": ["pikmykid.com"],
+  "colors": []
+}

@@ -1,0 +1,14 @@
+{
+  "name": "bilbab",
+  "version": "0.1.0",
+  "private": true,
+  "description": "بالباب: ولي الأمر يضغط «وصلت» عند بوابة المدرسة، والمدرسة تنادي ابنه فوراً.",
+  "type": "module",
+  "engines": { "node": ">=22.5" },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch server.js",
+    "test": "node --disable-warning=ExperimentalWarning --test test/api.test.js",
+    "e2e": "node --disable-warning=ExperimentalWarning --test test/e2e.test.js"
+  }
+}

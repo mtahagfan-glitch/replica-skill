@@ -1,0 +1,26 @@
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md); padding: 10px 12px; }
+.stat b { display: block; font-size: 1.6rem; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.stat span { color: var(--text-muted); font-size: .85rem; }
+.layout { display: grid; gap: 16px; grid-template-columns: 1fr; }
+@media (min-width: 960px) { .layout { grid-template-columns: 340px 1fr; align-items: start; } .side { position: sticky; top: 76px; } }
+.queue { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.pk { background: var(--surface); border: 1px solid var(--border); border-inline-start: 6px solid var(--warning); border-radius: var(--r-md); padding: 12px 14px; display: grid; gap: 6px; }
+.pk.sent { border-inline-start-color: var(--info); }
+.pk.released { border-inline-start-color: var(--success); opacity: .65; }
+.pk.new { animation: flash 1.2s ease-out 2; }
+@keyframes flash { 30% { background: var(--accent-soft); } }
+.pk .student { font-size: 1.3rem; font-weight: 700; line-height: 1.35; }
+.pk .who { font-size: .95rem; }
+.pk .who.delegate { color: var(--warning); font-weight: 600; }
+.pk .actions { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; margin-top: 4px; }
+.pk .actions button { white-space: nowrap; }
+.pk .actions.one { grid-template-columns: 1fr; }
+.empty { text-align: center; padding: 40px 16px; color: var(--text-muted); border: 2px dashed var(--border); border-radius: var(--r-md); }
+.code-in { font-size: 1.5rem; letter-spacing: .3em; text-align: center; direction: ltr; font-variant-numeric: tabular-nums; }
+.results { max-height: 320px; overflow: auto; }
+.res { padding: 8px 0; border-bottom: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: .95rem; }
+th, td { text-align: start; padding: 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { color: var(--text-muted); font-weight: 600; }
+.table-wrap { overflow-x: auto; }

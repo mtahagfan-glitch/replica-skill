@@ -1,0 +1,35 @@
+feature,area,priority,original,clone,notes
+Parent signs in with phone,auth,must,yes,yes,OTP via SMS (Taqnyat/Unifonic adapter)
+Stays signed in (no daily login),auth,must,no,yes,fix: #1 complaint - 90-day sliding session
+Link guardians to students (school roster),roster,must,yes,yes,CSV import from Noor/Excel
+Geofence around school,arrival,must,yes,yes,server-validated radius
+Announce arrival button in geofence,arrival,must,yes,yes,big single button
+Announce only in dismissal hours,arrival,must,yes,yes,configurable window
+Choose which children to call,arrival,should,yes,yes,
+Hands-free auto-announce on entering zone,arrival,should,partial,yes,fix: phone-while-driving complaints; opt-in; app open only
+Location only while app open (no always-on),privacy,must,no,yes,fix: always-on location complaints
+Staff live dismissal queue,staff,must,yes,yes,SSE realtime + chime + Arabic voice
+Teacher class view - send student out,staff,must,yes,yes,teachers see only their class
+Mark released/handed over,staff,must,yes,yes,
+Parent notified when child released,notify,must,yes,yes,in-app + system notification while app open
+Other parent notified when driver announces,notify,should,partial,yes,
+Hall display screen with names,staff,should,yes,yes,TV link with key and voice; no phone numbers
+Delegate pickup to another adult,delegation,must,yes,yes,one form; today/range/always
+Unlimited guardians and delegates,delegation,should,no,yes,fix: two-adult limit complaints
+Pickup code for parents without phone/signal,fallback,must,yes,yes,6-digit code instead of printed car tag
+Manual call by staff,fallback,must,yes,yes,
+Student search with guardians list,staff,should,yes,yes,
+Duplicate-call protection,arrival,must,unknown,yes,unique index per student per day
+Dismissal changes (car/bus/after-care) calendar,schedule,should,yes,no,next milestone
+Bus riders and bus notifications,bus,could,yes,no,
+Morning arrival / attendance confirmation,attendance,could,no,no,requested by users
+Admin: geofence + hours settings,admin,must,yes,yes,
+Admin: staff accounts,admin,must,yes,yes,
+Daily report and wait time,admin,should,yes,yes,median wait
+Multi-school parent (boys and girls schools),roster,must,yes,yes,picks the school you are standing at
+Arabic RTL and Hijri-aware dates,locale,must,no,partial,RTL done; Hijri display next
+Dark mode and dynamic font size,accessibility,should,no,yes,fix: accessibility complaint
+Apple CarPlay,arrival,could,no,no,requested in reviews; native app needed
+Native push when app is closed,notify,should,yes,no,needs native app (Expo + FCM/APNs) or Web Push
+Native iOS/Android apps,platform,should,yes,no,PWA now; Expo wrapper next
+District-wide multi-tenant console,admin,could,yes,skip,start with single schools

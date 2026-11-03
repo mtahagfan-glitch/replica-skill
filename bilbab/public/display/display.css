@@ -1,0 +1,15 @@
+body { min-height: 100vh; overflow: hidden; }
+.bar { display: flex; justify-content: space-between; align-items: center; padding: 1.5vh 2vw; border-bottom: 1px solid var(--border); font-size: 2.4vh; }
+.bar .brand { font-size: 3.2vh; }
+.bar .mark { width: 5vh; height: 5vh; font-size: 2.6vh; }
+.clock { font-size: 3.2vh; font-weight: 700; font-variant-numeric: tabular-nums; }
+#board { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(30vw, 520px), 1fr)); gap: 1.6vh; padding: 2vh 2vw; align-content: start; }
+.call { background: var(--surface); border-radius: 2vh; padding: 2vh 2.4vh; border-inline-start: 1.2vh solid var(--accent); }
+.call.sent { border-inline-start-color: var(--info); opacity: .8; }
+.call.new { animation: glow 1s ease-in-out 4; }
+@keyframes glow { 50% { background: var(--accent-soft); } }
+.call .n { font-size: 5vh; font-weight: 700; line-height: 1.25; }
+.call .c { font-size: 2.8vh; color: var(--text-muted); }
+.call .g { font-size: 2.6vh; color: var(--accent); font-weight: 600; margin-top: .6vh; }
+.none { grid-column: 1 / -1; text-align: center; font-size: 4vh; color: var(--text-muted); padding-top: 25vh; }
+.start { position: fixed; inset-inline-end: 2vw; bottom: 2vh; font-size: 2.2vh; }

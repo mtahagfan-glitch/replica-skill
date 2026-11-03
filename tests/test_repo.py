@@ -69,6 +69,9 @@ class Repo(unittest.TestCase):
             for fn in filenames:
                 if fn.endswith((".md", ".py", ".json", ".ts", ".csv")):
                     path = os.path.join(dirpath, fn)
+                    # verbatim review quotes collected by replica-entrepreneur must not be edited
+                    if fn == "reviews.csv" and os.path.basename(dirpath) == "replica":
+                        continue
                     with open(path, encoding="utf-8") as fh:
                         if chr(0x2014) in fh.read():
                             bad.append(os.path.relpath(path, ROOT))
