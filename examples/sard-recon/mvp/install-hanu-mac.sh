@@ -4,14 +4,9 @@
 set -e
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-SRC=""
-for f in "$HERE/hanu.html" "$HOME/Downloads/hanu.html" "$HERE/index.html"; do
-  [ -f "$f" ] && { SRC="$f"; break; }
-done
-if [ -z "$SRC" ]; then
-  # Safari renames repeat downloads: hanu (1).html, hanu-2.html ...
-  SRC="$(ls -t "$HOME"/Downloads/hanu*.html 2>/dev/null | head -1 || true)"
-fi
+# the newest download wins: browsers rename repeats to hanu (1).html, hanu-2.html ...
+SRC="$(ls -t "$HERE"/hanu*.html "$HOME"/Downloads/hanu*.html 2>/dev/null | head -1 || true)"
+[ -z "$SRC" ] && [ -f "$HERE/index.html" ] && SRC="$HERE/index.html"
 if [ -z "$SRC" ]; then
   echo "لم أجد ملف hanu.html. نزّله في مجلد التنزيلات (Downloads) ثم شغّل الأمر من جديد."
   exit 1

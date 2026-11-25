@@ -259,10 +259,26 @@ async function useStream(stream){
   video.srcObject = stream; await video.play().catch(() => {});
   $('empty').style.display = 'none'; layout();
 }
-async function startScreen(){ video.muted = true; await useStream(await navigator.mediaDevices.getDisplayMedia({video: {frameRate: 30}, audio: false})); }
+async function startScreen(){
+  video.muted = true;
+  const stream = await navigator.mediaDevices.getDisplayMedia({
+    video: {frameRate: 30, displaySurface: 'window'},   // open the picker on the "Window" tab
+    audio: false, selfBrowserSurface: 'exclude', surfaceSwitching: 'include', monitorTypeSurfaces: 'exclude'
+  });
+  const track = stream.getVideoTracks()[0], st = track.getSettings ? track.getSettings() : {};
+  const label = (track.label || '').toLowerCase();
+  // Sharing Hanu itself (or the whole screen with Hanu on it) films the page inside the page.
+  const self = st.displaySurface === 'browser' || st.displaySurface === 'monitor' || /file:|hanu|هنو/.test(label);
+  if (self) {
+    stream.getTracks().forEach(t => t.stop());
+    alert('هذه نافذة هنو نفسها أو الشاشة كاملة، فيصوّر هنو نفسه.\nاضغط مرة ثانية واختر تبويب "نافذة" ثم نافذة PS Remote Play.');
+    throw new Error('self-capture');
+  }
+  await useStream(stream);
+}
 $('srcScreen').onclick = async () => {
   try { await startScreen(); }
-  catch (e) { alert('لم تتم مشاركة النافذة: ' + e.message); }
+  catch (e) { if (e.message !== 'self-capture') alert('لم تتم مشاركة النافذة: ' + e.message); }
 };
 $('srcDevice').onclick = async () => {
   try {
@@ -403,10 +419,11 @@ async function paddleLoad(){
   setState('تحميل PaddleOCR (8MB، مرة واحدة)...');
   ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.29.0/dist/';
   ort.env.wasm.numThreads = 1; ort.env.logLevel = 'error';
-  const [yml, session] = await Promise.all([
+  const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('PaddleOCR load timeout')), 45000));
+  const [yml, session] = await Promise.race([timeout, Promise.all([
     fetch(PADDLE + 'inference.yml').then(r => r.text()),
     ort.InferenceSession.create(PADDLE + 'inference.onnx', {executionProviders: ['wasm'], logSeverityLevel: 3})
-  ]);
+  ])]);
   const dict = [], lines = yml.split('\n'); let inDict = false;
   for (const l of lines) {
     if (/^\s*character_dict:/.test(l)) { inDict = true; continue; }
