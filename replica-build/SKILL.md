@@ -80,8 +80,28 @@ Go back to the original as a user: read its help article, watch its public
 walkthrough, use the user's own account. Do not dig into its code or network
 calls. Then build your own version of the behaviour.
 
+## When a hot path is slow
+
+Some clones live or die on one tight loop: an OCR pipeline, a fuzzy search,
+an image filter, a diff. Do not rewrite the app for it.
+[fast-anything](https://github.com/EL4CTEO/fast-anything)
+(`npm i -g @el4cteo/fast-anything`, needs rustup) profiles the app, ranks
+functions by time and portability, has the agent port only those to Rust,
+replays up to 500 recorded real calls plus edge cases against the port, and
+only swaps it in when every case matches and it is actually faster:
+
+```bash
+fast-anything scan -- python app.py       # or node app.ts, go run ., ...
+fast-anything go --agent claude -- python app.py
+FAST_ANYTHING_DISABLE=1 python app.py     # the original, any time
+```
+
+Profile first. If nothing is hot, nothing gets ported. Log what was ported
+and the `bench` numbers in the build log.
+
 ## Output
 
 Screens built, the feature matrix updated, screenshots saved, and a summary:
 screens done of total, must-haves done of total, what is next. Then
-`/replica-backend` if the data layer is still fake, else `/replica-test`.
+`/replica-backend` if the data layer is still fake, then `/replica-polish`,
+then `/replica-test`.

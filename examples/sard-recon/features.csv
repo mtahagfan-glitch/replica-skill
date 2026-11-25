@@ -1,0 +1,27 @@
+feature,area,priority,original,clone,notes
+Capture game video (capture card),input,must,yes,yes,mvp: getUserMedia device picker
+Capture game video (Remote Play window),input,must,yes,yes,mvp: getDisplayMedia window share
+Capture PS5 stream on phone (Remote Play),input,should,yes,no,path B: chiaki-ng (AGPL)
+Capture Xbox stream on phone,input,could,yes,no,path B: WebView on play.xbox.com
+Subtitle region crop per game,ocr,must,yes,yes,mvp: draggable box saved per game
+Change detection before OCR,ocr,must,yes,yes,mvp: pixel diff on the crop
+On-device OCR,ocr,must,yes,yes,mvp: Tesseract.js; upgrade to PaddleOCR ONNX
+Two-tier OCR read,ocr,could,yes,no,ML Kit then PaddleOCR in original
+OCR cleanup with dictionary,ocr,should,yes,partial,mvp: whitespace and symbol cleanup
+Fuzzy match against translation memory,translation,should,unknown,yes,mvp: similarity over 0.9 reuses cached line
+Instant translation,translation,must,yes,yes,mvp: Gemini Flash Lite
+Professional reviewed translation,translation,should,yes,partial,mvp: user can edit any line into memory
+Game glossary (names and places),translation,must,yes,yes,mvp: editable glossary in settings
+Dialect choice (MSA or Saudi),translation,could,no,yes,new: not offered by original
+Profanity softening,translation,should,yes,yes,mvp: prompt option
+Arabic overlay over English line,display,must,yes,yes,mvp: covers crop region
+Style: font size colour background,display,must,yes,yes,mvp: live preview
+Display on TV over HDMI input,display,should,yes,no,path B: Android TV overlay or LG webOS
+Pair phone and TV with 6 digit code,pairing,should,yes,no,path B: WebSocket relay
+Session log,session,should,yes,yes,mvp
+Session summary,session,should,yes,yes,mvp: Gemini summary in Arabic
+Report wrong translation,quality,should,yes,partial,mvp: edit line locally; shared review needs server
+Game search and presets,setup,should,yes,partial,mvp: GTA V preset only
+Accounts (Apple Google email),account,could,yes,no,path B
+Paid passes without auto-renew,billing,could,yes,no,path B: Paymob or Moyasar
+Setup guide wizard,onboarding,should,yes,partial,mvp: inline steps

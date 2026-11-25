@@ -67,6 +67,31 @@ Build a sources table first, with a URL on every row. In order of value:
 | marketing site | positioning, the core loop in their words |
 | the user's own account | the real thing, every state, driven by the user |
 | public API docs | the data model, almost for free |
+| open-source notices | the real stack: the app's "third-party licences" screen, its credits page, the licence files it ships |
+| public setup guides | the whole architecture, often step by step, written for users |
+
+## Step 2b: the stack, from what the app publishes
+
+Apps tell you a lot about how they work without a line of their code being
+read. Open-source licences require it: an app that uses an open-source OCR
+engine, a remote-play library or a font has to say so in its licence notices.
+Setup guides written for users name every device, permission and pairing
+step. Together they usually give you the architecture.
+
+Write a `stack` table: component, what it does in the app, evidence (the
+notice, the guide step), the component's own licence. An AGPL or GPL
+component the original uses is a decision for `/replica-architect`: using it
+too means publishing your source.
+
+**REA, for what you are allowed to inspect.** [REA](https://github.com/morluto/rea)
+(`npx rea-agents setup`, MCP + CLI, v6.10.1 at the time of writing) inspects
+binaries, JavaScript and Electron apps, .NET assemblies and Android packages
+with evidence for every conclusion. Use it on what the user owns or is
+licensed to inspect: their own builds (check what actually shipped in their
+APK or bundle), open-source components the original credits (read the
+upstream project directly), and apps whose licence permits analysis. It does
+not change the rules above: no decompiling the target, no copying its code or
+private endpoints.
 
 ## Step 3: screen inventory
 

@@ -1,6 +1,6 @@
 # The Replica skill
 
-Eleven Claude skills that clone any app. Free, MIT, no signup, no API key,
+Twelve Claude skills that clone any app. Free, MIT, no signup, no API key,
 nothing to connect.
 
 One reverse-engineers the app you want to clone. One rebuilds it. One tests it
@@ -49,7 +49,7 @@ method works.
 
 The tools need Python 3.8 or newer. Nothing to pip install.
 
-## The eleven
+## The twelve
 
 | command | what it does |
 | --- | --- |
@@ -58,6 +58,7 @@ The tools need Python 3.8 or newer. Nothing to pip install.
 | `/replica-design` | Rebuilds the design system: colours, type, spacing, components. As tokens, with your own assets. |
 | `/replica-build` | Rebuilds the app screen by screen from the recon map. |
 | `/replica-backend` | Auth, database, payments and integrations. |
+| `/replica-polish` | The fidelity loop: captures, compares side by side with the original, fixes, repeats until nothing is left to fix. Native-quality bar and anti-slop checks. |
 | `/replica-test` | Clicks through every flow and tests it for bugs. |
 | `/replica-diff` | Compares your clone against the original. A parity score and what is missing. |
 | `/replica-entrepreneur` | Reads what the app's users hate in real reviews and turns it into fixes and a positioning angle. |
@@ -71,7 +72,7 @@ Run them in order. Each one reads what the last one wrote, in a `replica/`
 folder in your project.
 
 ```
-recon -> architect -> design -> build -> backend -> test -> diff -> entrepreneur -> brand -> launch -> deploy
+recon -> architect -> design -> build -> backend -> polish -> test -> diff -> entrepreneur -> brand -> launch -> deploy
 ```
 
 An example: cloning a scheduling app, the kind where you share a link and
@@ -153,6 +154,23 @@ your listing.
 python3 -m unittest discover -s tests -v
 ```
 
+## Optional power tools
+
+None of these are needed. Each one sharpens one step when you have it.
+
+| tool | step | what it adds |
+| --- | --- | --- |
+| [REA](https://github.com/morluto/rea) `npx rea-agents setup` | recon | Evidence-backed inspection of binaries, JS/Electron, .NET and Android packages you own or may inspect: your own builds, open-source components the original credits. |
+| [Appllama MCP](https://appllama.io/mcp) `https://mcp.appllama.io/mcp` | polish | Real screens and videos of top-grossing apps as the benchmark for the fidelity loop. Pro account, one credit per call. |
+| [fast-anything](https://github.com/EL4CTEO/fast-anything) `npm i -g @el4cteo/fast-anything` | build | Profiles the clone, ports only the hot functions to Rust, proves them against recorded real calls. |
+
+## Examples
+
+`examples/sard-recon/` is a full recon of a real product, a live Arabic
+subtitle overlay for console games, run with these skills: the recon map, the
+feature matrix, an architecture for your own version and a working browser
+prototype of its core loop.
+
 ## Fine print
 
 **It rebuilds functionality and UX patterns, clean-room style.** It studies
@@ -193,6 +211,7 @@ replica-architect/     SKILL.md, architecture.md
 replica-design/        SKILL.md, tokens.json, contrast.py
 replica-build/         SKILL.md
 replica-backend/       SKILL.md
+replica-polish/        SKILL.md, references/ (native bar, motion, simulator loop, Appllama playbooks, MIT)
 replica-test/          SKILL.md, test-plan.md, bug-report.md, e2e.example.spec.ts
 replica-diff/          SKILL.md, imgdiff.py, parity.py
 replica-entrepreneur/  SKILL.md, reviews.py, themes.json

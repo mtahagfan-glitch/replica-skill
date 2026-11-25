@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ترجمان: ترجمة الألعاب الفورية</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Tajawal:wght@500;700&family=IBM+Plex+Sans+Arabic:wght@500;700&family=Noto+Naskh+Arabic:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<style>
+:root{
+  --ground:#0b1520; --panel:#111e2b; --panel2:#16283a; --line:rgba(255,255,255,.10);
+  --ink:#eef3f7; --ink2:rgba(238,243,247,.70); --ink3:rgba(238,243,247,.50);
+  --accent:#2bb3a3; --warn:#f2b84b; --danger:#ff8a7a; --r:12px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--ground);color:var(--ink);font-family:Cairo,system-ui,sans-serif}
+button,select,input,textarea{font:inherit;color:inherit}
+.app{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px;padding:16px;min-height:100%}
+@media (max-width:980px){.app{grid-template-columns:1fr}}
+header{grid-column:1/-1;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+header h1{font-size:20px;margin:0;font-weight:700}
+header .sub{color:var(--ink3);font-size:13px}
+.spacer{flex:1}
+.btn{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:8px 14px;cursor:pointer;font-size:14px}
+.btn:hover{border-color:rgba(255,255,255,.25)}
+.btn.primary{background:var(--accent);border-color:transparent;color:#04201c;font-weight:700}
+.btn.on{outline:2px solid var(--accent)}
+.stage-wrap{background:#000;border-radius:var(--r);overflow:hidden;position:relative}
+.stage{position:relative;width:100%;aspect-ratio:16/9;background:#000}
+.stage video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+.empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--ink2);padding:24px}
+.empty b{display:block;font-size:18px;color:var(--ink);margin-bottom:6px}
+.region{position:absolute;border:2px dashed var(--warn);border-radius:6px;cursor:move;touch-action:none}
+.region .tag{position:absolute;top:-24px;right:0;font-size:12px;background:var(--warn);color:#2a1d00;padding:1px 8px;border-radius:6px;white-space:nowrap}
+.region .handle{position:absolute;left:-7px;bottom:-7px;width:14px;height:14px;background:var(--warn);border-radius:3px;cursor:nesw-resize}
+.hide-region .region{border-color:transparent}
+.hide-region .region .tag,.hide-region .region .handle{display:none}
+.sub-ar{position:absolute;display:flex;align-items:center;justify-content:center;pointer-events:none;text-align:center;opacity:0;transition:opacity .12s linear}
+.sub-ar.show{opacity:1}
+.sub-ar span{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 .6em;border-radius:.35em;line-height:1.35;text-shadow:0 0 3px #000,0 0 6px #000}
+.sub-ar small{display:block;font-family:system-ui,sans-serif;font-size:.45em;opacity:.7;direction:ltr}
+.stats{display:flex;gap:16px;flex-wrap:wrap;padding:10px 14px;font-size:13px;color:var(--ink2);background:var(--panel);border-top:1px solid var(--line)}
+.stats b{color:var(--ink);font-variant-numeric:tabular-nums}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ink3);margin-left:6px}
+.dot.live{background:var(--accent)}
+aside{display:flex;flex-direction:column;gap:12px;min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.card h2{font-size:15px;margin:0 0 10px}
+label.row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0;font-size:14px;color:var(--ink2)}
+label.row input[type=text],label.row input[type=password],label.row select{width:58%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+label.row input[type=range]{width:58%}
+textarea{width:100%;min-height:90px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px;direction:ltr;font-size:13px}
+.hint{font-size:12px;color:var(--ink3);margin:6px 0 0}
+.log{max-height:340px;overflow:auto;display:flex;flex-direction:column;gap:8px}
+.item{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--panel2)}
+.item .en{direction:ltr;text-align:left;font-size:12px;color:var(--ink3);font-family:system-ui,sans-serif}
+.item .ar{font-size:15px;margin-top:2px}
+.item .meta{display:flex;gap:8px;align-items:center;font-size:11px;color:var(--ink3);margin-top:4px}
+.item .meta button{background:none;border:0;color:var(--accent);cursor:pointer;padding:0;font-size:12px}
+.pill{border:1px solid var(--line);border-radius:999px;padding:0 6px}
+.pill.mem{color:var(--accent);border-color:var(--accent)}
+.summary{white-space:pre-wrap;font-size:14px;line-height:1.8;color:var(--ink2)}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap}
+details summary{cursor:pointer;color:var(--ink2);font-size:14px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>ترجمان</h1>
+    <span class="sub">ترجمة عربية فورية فوق ترجمة اللعبة الإنجليزية</span>
+    <span class="spacer"></span>
+    <button class="btn" id="srcDevice">كرت التقاط</button>
+    <button class="btn" id="srcScreen">مشاركة نافذة</button>
+    <button class="btn" id="srcDemo">عرض تجريبي</button>
+    <button class="btn primary" id="toggle">ابدأ الترجمة</button>
+    <button class="btn" id="fs">ملء الشاشة</button>
+  </header>
+
+  <main>
+    <div class="stage-wrap">
+      <div class="stage" id="stage">
+        <video id="video" playsinline muted autoplay></video>
+        <div class="empty" id="empty"><div><b>اختر مصدر الصورة</b>كرت التقاط موصول بالبلايستيشن أو الإكس بوكس، أو نافذة Remote Play، أو العرض التجريبي.<br>ثم اسحب المربع الأصفر فوق مكان الترجمة الإنجليزية.</div></div>
+        <div class="region" id="region"><span class="tag">منطقة الترجمة الإنجليزية</span><span class="handle" id="handle"></span></div>
+        <div class="sub-ar" id="subAr"><span id="subArText"></span></div>
+      </div>
+      <div class="stats">
+        <span><i class="dot" id="liveDot"></i><b id="state">متوقف</b></span>
+        <span>OCR <b id="ocrMs">0</b> ms</span>
+        <span>الترجمة <b id="trMs">0</b> ms</span>
+        <span>من الظهور إلى العربي <b id="e2eMs">0</b> ms</span>
+        <span>ذاكرة الترجمة <b id="memCount">0</b> سطر</span>
+      </div>
+    </div>
+  </main>
+
+  <aside>
+    <section class="card">
+      <h2>الترجمة</h2>
+      <label class="row">المزوّد
+        <select id="provider"><option value="gemini">Gemini (مفتاح API)</option><option value="mymemory">مجاني بدون مفتاح (أبطأ)</option></select>
+      </label>
+      <label class="row">مفتاح Gemini<input type="password" id="apiKey" placeholder="AIza..."></label>
+      <label class="row">النموذج<input type="text" id="model" value="gemini-3.5-flash-lite"></label>
+      <label class="row">الأسلوب
+        <select id="dialect"><option value="سعودية بيضاء مفهومة">سعودي</option><option value="فصحى مبسطة">فصحى مبسطة</option><option value="خليجية">خليجي</option></select>
+      </label>
+      <label class="row">تلطيف الشتائم<input type="checkbox" id="soften" checked></label>
+      <details><summary>قاموس اللعبة (إنجليزي = عربي)</summary>
+        <textarea id="glossary"></textarea>
+        <p class="hint">سطر لكل اسم. يُرسل مع كل طلب ترجمة حتى تبقى الأسماء ثابتة.</p>
+      </details>
+      <p class="hint">المفتاح يُحفظ في متصفحك فقط ويذهب مباشرة إلى Google. احصل عليه مجانًا من aistudio.google.com.</p>
+    </section>
+
+    <section class="card">
+      <h2>شكل الترجمة</h2>
+      <label class="row">الخط
+        <select id="font"><option>Cairo</option><option>Tajawal</option><option>IBM Plex Sans Arabic</option><option>Noto Naskh Arabic</option></select>
+      </label>
+      <label class="row">الحجم<input type="range" id="size" min="50" max="200" value="100"></label>
+      <label class="row">لون النص<input type="color" id="color" value="#ffffff"></label>
+      <label class="row">لون الخلفية<input type="color" id="bg" value="#000000"></label>
+      <label class="row">شفافية الخلفية<input type="range" id="bgAlpha" min="0" max="100" value="92"></label>
+      <label class="row">إظهار الإنجليزي صغيرًا<input type="checkbox" id="showEn"></label>
+      <label class="row">إخفاء إطار المنطقة<input type="checkbox" id="hideRegion"></label>
+    </section>
+
+    <section class="card">
+      <h2>سجل الجلسة</h2>
+      <div class="toolbar">
+        <button class="btn" id="summaryBtn">ملخص الجلسة</button>
+        <button class="btn" id="exportBtn">تصدير الذاكرة</button>
+        <button class="btn" id="importBtn">استيراد</button>
+        <input type="file" id="importFile" accept="application/json" hidden>
+      </div>
+      <p class="summary" id="summary"></p>
+      <div class="log" id="log"></div>
+    </section>
+  </aside>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const store = {
+  get(k, d){ try { const v = localStorage.getItem('turjuman.' + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v){ try { localStorage.setItem('turjuman.' + k, JSON.stringify(v)); } catch {} }
+};
+
+const GTA_GLOSSARY = `Franklin = فرانكلين
+Michael = مايكل
+Trevor = تريفر
+Lamar = لامار
+Lester = ليستر
+Chop = تشوب
+Los Santos = لوس سانتوس
+Vinewood = فاينوود
+Grove Street = شارع غروف
+Sandy Shores = ساندي شورز
+Blaine County = مقاطعة بلين
+heist = عملية سطو
+LSPD = شرطة لوس سانتوس`;
+
+// ---------- state ----------
+const video = $('video'), stage = $('stage'), region = $('region'), subAr = $('subAr'), subArText = $('subArText');
+let running = false, tickTimer = null, worker = null, ocrBusy = false;
+let lastSig = null, stableTicks = 0, changedAt = 0, lastLineNorm = '', blankSince = 0;
+let reg = store.get('region', {x: .14, y: .79, w: .72, h: .13});
+let memory = store.get('memory', {});              // norm -> {en, ar, reviewed}
+let session = [];                                   // {en, ar, src, t}
+const ctxLines = [];
+
+// ---------- settings ----------
+const fields = ['provider','apiKey','model','dialect','soften','glossary','font','size','color','bg','bgAlpha','showEn','hideRegion'];
+const settings = store.get('settings', {});
+if (!settings.glossary) settings.glossary = GTA_GLOSSARY;
+for (const f of fields) {
+  const el = $(f);
+  if (settings[f] !== undefined) { if (el.type === 'checkbox') el.checked = settings[f]; else el.value = settings[f]; }
+  el.addEventListener('input', () => { settings[f] = el.type === 'checkbox' ? el.checked : el.value; store.set('settings', settings); applyStyle(); });
+}
+function applyStyle(){
+  const s = settings, size = (+$('size').value || 100) / 100;
+  const hex = $('bg').value, a = (+$('bgAlpha').value) / 100;
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  subArText.style.fontFamily = `"${$('font').value}", Cairo, sans-serif`;
+  subArText.style.color = $('color').value;
+  subArText.style.background = `rgba(${r},${g},${b},${a})`;
+  subAr.dataset.scale = size;
+  stage.classList.toggle('hide-region', $('hideRegion').checked);
+  layout();
+}
+
+// ---------- region (normalised to the video picture) ----------
+function picRect(){
+  const W = stage.clientWidth, H = stage.clientHeight;
+  const vw = video.videoWidth || 16, vh = video.videoHeight || 9;
+  const s = Math.min(W / vw, H / vh), w = vw * s, h = vh * s;
+  return {x: (W - w) / 2, y: (H - h) / 2, w, h};
+}
+function layout(){
+  const p = picRect();
+  const css = {left: p.x + reg.x * p.w + 'px', top: p.y + reg.y * p.h + 'px', width: reg.w * p.w + 'px', height: reg.h * p.h + 'px'};
+  Object.assign(region.style, css); Object.assign(subAr.style, css);
+  const scale = +(subAr.dataset.scale || 1);
+  subArText.style.fontSize = Math.max(14, reg.h * p.h * 0.42 * scale) + 'px';
+}
+new ResizeObserver(layout).observe(stage);
+video.addEventListener('loadedmetadata', layout);
+
+let drag = null;
+region.addEventListener('pointerdown', e => {
+  const p = picRect();
+  drag = {mode: e.target.id === 'handle' ? 'resize' : 'move', sx: e.clientX, sy: e.clientY, r: {...reg}, p};
+  region.setPointerCapture(e.pointerId); e.preventDefault();
+});
+region.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const dx = (e.clientX - drag.sx) / drag.p.w, dy = (e.clientY - drag.sy) / drag.p.h, r = drag.r;
+  if (drag.mode === 'move') { reg.x = clamp(r.x + dx, 0, 1 - r.w); reg.y = clamp(r.y + dy, 0, 1 - r.h); }
+  else { // handle sits bottom-left: dragging left grows width to the left
+    const nx = clamp(r.x + dx, 0, r.x + r.w - .05);
+    reg.w = r.w + (r.x - nx); reg.x = nx; reg.h = clamp(r.h + dy, .04, 1 - r.y);
+  }
+  layout();
+});
+region.addEventListener('pointerup', () => { drag = null; store.set('region', reg); lastSig = null; });
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+// ---------- sources ----------
+async function useStream(stream){
+  if (video.srcObject && video.srcObject !== stream) video.srcObject.getTracks().forEach(t => t.stop());
+  video.srcObject = stream; await video.play().catch(() => {});
+  $('empty').style.display = 'none'; layout();
+}
+$('srcScreen').onclick = async () => {
+  try { await useStream(await navigator.mediaDevices.getDisplayMedia({video: {frameRate: 30}, audio: false})); }
+  catch (e) { alert('لم تتم مشاركة النافذة: ' + e.message); }
+};
+$('srcDevice').onclick = async () => {
+  try {
+    const first = await navigator.mediaDevices.getUserMedia({video: true});
+    const devices = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+    first.getTracks().forEach(t => t.stop());
+    let id = devices[0] && devices[0].deviceId;
+    if (devices.length > 1) {
+      const names = devices.map((d, i) => `${i + 1}. ${d.label || 'جهاز ' + (i + 1)}`).join('\n');
+      const pick = parseInt(prompt('اختر رقم كرت الالتقاط:\n' + names, '1'), 10);
+      if (devices[pick - 1]) id = devices[pick - 1].deviceId;
+    }
+    await useStream(await navigator.mediaDevices.getUserMedia({video: {deviceId: id ? {exact: id} : undefined, width: {ideal: 1920}, height: {ideal: 1080}, frameRate: {ideal: 60}}}));
+  } catch (e) { alert('لم نصل إلى كرت الالتقاط: ' + e.message); }
+};
+$('srcDemo').onclick = () => useStream(demoStream());
+
+// A built-in test scene: a moving "city" and white English subtitles at the bottom, like most console games.
+function demoStream(){
+  const c = document.createElement('canvas'); c.width = 1280; c.height = 720;
+  const g = c.getContext('2d');
+  const lines = ['Took you long enough to get here.', 'Grab the car and meet me by the docks.', 'Lamar, keep your voice down, man.', 'We need a plan before anybody gets hurt.', 'How far is the safehouse from here?'];
+  const t0 = performance.now();
+  (function draw(){
+    const t = (performance.now() - t0) / 1000;
+    const sky = g.createLinearGradient(0, 0, 0, 720); sky.addColorStop(0, '#f39c5a'); sky.addColorStop(1, '#4a2a5e');
+    g.fillStyle = sky; g.fillRect(0, 0, 1280, 720);
+    for (let i = 0; i < 18; i++) { const x = ((i * 97 + t * 40) % 1400) - 100, h = 160 + (i * 53) % 260; g.fillStyle = i % 2 ? '#2a2140' : '#3a2b52'; g.fillRect(x, 720 - h - 90, 70, h + 90); }
+    g.fillStyle = '#c9c9c9'; g.fillRect(0, 640, 1280, 80);
+    const idx = Math.floor(t / 3.2) % lines.length, phase = t % 3.2;
+    if (phase > .5) {
+      g.font = '600 34px Arial, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.lineWidth = 6; g.strokeStyle = '#000'; g.strokeText(lines[idx], 640, 640); g.fillStyle = '#fff'; g.fillText(lines[idx], 640, 640);
+    }
+    requestAnimationFrame(draw);
+  })();
+  return c.captureStream(30);
+}
+
+// ---------- capture + change detection ----------
+const crop = document.createElement('canvas'), cg = crop.getContext('2d', {willReadFrequently: true});
+function grab(){
+  const vw = video.videoWidth, vh = video.videoHeight; if (!vw) return null;
+  const sx = Math.round(reg.x * vw), sy = Math.round(reg.y * vh), sw = Math.round(reg.w * vw), sh = Math.round(reg.h * vh);
+  const scale = sh < 140 ? 140 / sh : 1;                 // OCR likes letters 30 to 60 px tall
+  crop.width = Math.round(sw * scale); crop.height = Math.round(sh * scale);
+  cg.drawImage(video, sx, sy, sw, sh, 0, 0, crop.width, crop.height);
+  const img = cg.getImageData(0, 0, crop.width, crop.height), d = img.data;
+  // Subtitles are white letters with a dark outline or shadow. Keep a bright pixel only when a dark pixel
+  // sits within R px of it: bright sky, roads and HUD without an outline drop out.
+  const cw0 = crop.width, ch0 = crop.height, N = cw0 * ch0, R = Math.max(2, Math.round(ch0 / 40));
+  const brightM = new Uint8Array(N), darkI = new Uint32Array((cw0 + 1) * (ch0 + 1));
+  for (let y = 0, p = 0; y < ch0; y++) {
+    let row = 0;
+    for (let x = 0; x < cw0; x++, p++) {
+      const i = p * 4, lum = .299 * d[i] + .587 * d[i + 1] + .114 * d[i + 2];
+      const sat = Math.max(d[i], d[i + 1], d[i + 2]) - Math.min(d[i], d[i + 1], d[i + 2]);
+      brightM[p] = lum > 200 && sat < 50 ? 1 : 0;
+      row += lum < 90 ? 1 : 0;
+      darkI[(y + 1) * (cw0 + 1) + x + 1] = darkI[y * (cw0 + 1) + x + 1] + row;
+    }
+  }
+  let bright = 0;
+  for (let y = 0, p = 0; y < ch0; y++) for (let x = 0; x < cw0; x++, p++) {
+    let on = 0;
+    if (brightM[p]) {
+      const x0 = Math.max(0, x - R), x1 = Math.min(cw0, x + R + 1), y0 = Math.max(0, y - R), y1 = Math.min(ch0, y + R + 1);
+      const W1 = cw0 + 1, dark = darkI[y1 * W1 + x1] - darkI[y0 * W1 + x1] - darkI[y1 * W1 + x0] + darkI[y0 * W1 + x0];
+      on = dark > 0 ? 1 : 0;
+    }
+    const v = on ? 0 : 255; bright += on; const i = p * 4;
+    d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255;
+  }
+  cg.putImageData(img, 0, 0);
+  // coarse signature: 48x6 grid of ink counts
+  const GX = 48, GY = 6, sig = new Uint16Array(GX * GY), cw = crop.width, ch = crop.height;
+  for (let y = 0; y < ch; y += 2) for (let x = 0; x < cw; x += 2) if (d[(y * cw + x) * 4] === 0) sig[Math.floor(y * GY / ch) * GX + Math.floor(x * GX / cw)]++;
+  return {sig, ink: bright / (crop.width * crop.height)};
+}
+const sigDiff = (a, b) => { if (!a || !b) return 1; let s = 0, t = 0; for (let i = 0; i < a.length; i++) { s += Math.abs(a[i] - b[i]); t += a[i] + b[i]; } return t ? s / t : 0; };
+
+async function tick(){
+  if (!running || !video.videoWidth) return;
+  const g = grab(); if (!g) return;
+  const now = performance.now();
+  if (g.ink < 0.002) {                                   // nothing on screen: hide after a short grace
+    if (!blankSince) blankSince = now;
+    if (now - blankSince > 500) { subAr.classList.remove('show'); lastLineNorm = ''; }
+    lastSig = g.sig; stableTicks = 0; return;
+  }
+  blankSince = 0;
+  const diff = sigDiff(g.sig, lastSig); lastSig = g.sig;
+  if (diff > 0.08) { stableTicks = 0; changedAt = now; return; }
+  stableTicks++;
+  if (stableTicks === 1 && !ocrBusy) runOcr(changedAt || now);   // text settled: read it once
+}
+
+async function runOcr(appearedAt){
+  ocrBusy = true;
+  try {
+    if (!worker) { setState('تحميل OCR...'); worker = await Tesseract.createWorker('eng', 1); await worker.setParameters({tessedit_pageseg_mode: '6', preserve_interword_spaces: '1'}); setState('يعمل', true); }
+    const t = performance.now();
+    const {data} = await worker.recognize(crop);
+    $('ocrMs').textContent = Math.round(performance.now() - t);
+    const en = clean(data.text);
+    if (!en) return;
+    const norm = normalize(en);
+    if (norm === lastLineNorm || similarity(norm, lastLineNorm) > 0.9) return;
+    lastLineNorm = norm;
+    await show(en, norm, appearedAt);
+  } catch (e) { console.error(e); setState('خطأ OCR'); }
+  finally { ocrBusy = false; }
+}
+function clean(s){
+  s = s.replace(/[|_~`{}\[\]<>\\\u2014\u2013]/g, ' ').replace(/\s+/g, ' ').replace(/^[\s.,;:'"-]+|[\s,;:'"-]+$/g, '').trim();
+  s = s.replace(/([a-z])[;,](?=[a-z])/gi, '$1 ');          // the outline gap between words reads as , or ;
+  const letters = (s.match(/[A-Za-z]/g) || []).length;
+  return letters >= 3 && letters / s.length > 0.5 ? s : '';
+}
+const normalize = s => s.toLowerCase().replace(/[^a-z0-9' ]/g, '').replace(/\s+/g, ' ').trim();
+function similarity(a, b){
+  if (!a || !b) return 0; if (a === b) return 1;
+  const m = a.length, n = b.length; if (Math.abs(m - n) > Math.max(m, n) * .3) return 0;
+  let prev = Array.from({length: n + 1}, (_, j) => j), cur = new Array(n + 1);
+  for (let i = 1; i <= m; i++) { cur[0] = i; for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); [prev, cur] = [cur, prev]; }
+  return 1 - prev[n] / Math.max(m, n);
+}
+function fromMemory(norm){
+  if (memory[norm]) return memory[norm];
+  let best = null, score = 0;
+  for (const k in memory) { const s = similarity(norm, k); if (s > score) { score = s; best = memory[k]; } }
+  return score >= 0.9 ? best : null;
+}
+
+// ---------- translation ----------
+async function translate(en){
+  const t = performance.now(); let ar;
+  if ($('provider').value === 'gemini' && $('apiKey').value.trim()) ar = await gemini(en);
+  else ar = await myMemory(en);
+  $('trMs').textContent = Math.round(performance.now() - t);
+  return ar;
+}
+function systemPrompt(){
+  return `أنت مترجم حوارات ألعاب فيديو. ترجم سطر الترجمة الإنجليزي إلى عربية ${$('dialect').value}، قصيرة وطبيعية ومناسبة للقراءة السريعة على الشاشة.
+${$('soften').checked ? 'خفّف الشتائم والألفاظ البذيئة إلى بدائل مهذبة مع الإبقاء على النبرة.' : 'حافظ على نبرة الشتائم كما هي.'}
+التزم بهذا القاموس للأسماء والمصطلحات:
+${$('glossary').value}
+قد يحتوي السطر على أخطاء قراءة OCR (حروف ملتصقة أو زائدة): استنتج الجملة المقصودة وترجمها.
+إذا كان السطر ضجيجًا بلا معنى، أعد كلمة SKIP فقط.
+أعد الترجمة العربية فقط، بدون علامات تنصيص أو شرح.`;
+}
+async function gemini(en){
+  const model = $('model').value.trim() || 'gemini-3.5-flash-lite';
+  const context = ctxLines.slice(-3).map(l => `- ${l}`).join('\n');
+  const body = {
+    systemInstruction: {parts: [{text: systemPrompt()}]},
+    contents: [{role: 'user', parts: [{text: (context ? `الأسطر السابقة للسياق فقط:\n${context}\n\n` : '') + `السطر المطلوب:\n${en}`}]}],
+    generationConfig: {temperature: 0.3, maxOutputTokens: 200}
+  };
+  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+    method: 'POST', headers: {'Content-Type': 'application/json', 'x-goog-api-key': $('apiKey').value.trim()}, body: JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error('Gemini ' + r.status);
+  const d = await r.json();
+  return (d.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('').trim();
+}
+async function myMemory(en){
+  const r = await fetch('https://api.mymemory.translated.net/get?langpair=en|ar&q=' + encodeURIComponent(en));
+  const d = await r.json();
+  return (d.responseData && d.responseData.translatedText) || '';
+}
+
+// ---------- display + log ----------
+async function show(en, norm, appearedAt){
+  let hit = fromMemory(norm), ar, src;
+  if (hit) { ar = hit.ar; src = hit.reviewed ? 'مراجَع' : 'ذاكرة'; $('trMs').textContent = 0; }
+  else {
+    try { ar = await translate(en); } catch (e) { console.error(e); setState('خطأ ترجمة: ' + e.message); return; }
+    if (!ar || /^SKIP\b/i.test(ar)) return;
+    memory[norm] = {en, ar, reviewed: false}; saveMemory(); src = 'جديد';
+  }
+  ctxLines.push(en); if (ctxLines.length > 6) ctxLines.shift();
+  subArText.innerHTML = ''; subArText.append(ar);
+  if ($('showEn').checked) { const s = document.createElement('small'); s.textContent = en; subArText.append(s); }
+  subAr.classList.add('show');
+  $('e2eMs').textContent = Math.round(performance.now() - appearedAt);
+  const entry = {en, ar, src, norm, t: Date.now()}; session.push(entry); addLog(entry);
+}
+function addLog(e){
+  const el = document.createElement('div'); el.className = 'item';
+  const en = document.createElement('div'); en.className = 'en'; en.textContent = e.en;
+  const ar = document.createElement('div'); ar.className = 'ar'; ar.textContent = e.ar;
+  const meta = document.createElement('div'); meta.className = 'meta';
+  const pill = document.createElement('span'); pill.className = 'pill' + (e.src === 'جديد' ? '' : ' mem'); pill.textContent = e.src;
+  const fix = document.createElement('button'); fix.textContent = 'صحّح الترجمة';
+  fix.onclick = () => {
+    const v = prompt('الترجمة الصحيحة (تُحفظ وتُستخدم كل مرة):', e.ar); if (!v) return;
+    e.ar = v; ar.textContent = v; memory[e.norm] = {en: e.en, ar: v, reviewed: true}; saveMemory(); pill.textContent = 'مراجَع'; pill.className = 'pill mem';
+  };
+  meta.append(pill, fix); el.append(en, ar, meta); $('log').prepend(el);
+}
+function saveMemory(){ store.set('memory', memory); $('memCount').textContent = Object.keys(memory).length; }
+function setState(s, live){ $('state').textContent = s; $('liveDot').classList.toggle('live', !!live); }
+
+$('summaryBtn').onclick = async () => {
+  if (!session.length) { $('summary').textContent = 'لا توجد أسطر في هذه الجلسة بعد.'; return; }
+  if (!$('apiKey').value.trim()) { $('summary').textContent = 'الملخص يحتاج مفتاح Gemini.'; return; }
+  $('summary').textContent = 'جاري التلخيص...';
+  const text = session.map(e => e.en).join('\n');
+  try {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent($('model').value.trim())}:generateContent`, {
+      method: 'POST', headers: {'Content-Type': 'application/json', 'x-goog-api-key': $('apiKey').value.trim()},
+      body: JSON.stringify({contents: [{role: 'user', parts: [{text: 'هذه حوارات جلسة لعب بالترتيب. اكتب ملخصًا عربيًا قصيرًا (4 أسطر كحد أقصى) لما حدث وأين توقف اللاعب:\n' + text}]}]})
+    });
+    const d = await r.json(); $('summary').textContent = (d.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('').trim();
+  } catch (e) { $('summary').textContent = 'تعذّر التلخيص: ' + e.message; }
+};
+$('exportBtn').onclick = () => {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(memory, null, 1)], {type: 'application/json'}));
+  a.download = 'turjuman-memory.json'; a.click(); URL.revokeObjectURL(a.href);
+};
+$('importBtn').onclick = () => $('importFile').click();
+$('importFile').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try { Object.assign(memory, JSON.parse(await f.text())); saveMemory(); } catch { alert('ملف غير صالح'); }
+};
+
+// ---------- controls ----------
+$('toggle').onclick = () => {
+  if (!video.srcObject) { alert('اختر مصدر الصورة أولًا.'); return; }
+  running = !running;
+  $('toggle').textContent = running ? 'أوقف الترجمة' : 'ابدأ الترجمة';
+  if (running) { setState(worker ? 'يعمل' : 'تحميل OCR...', !!worker); tickTimer = setInterval(tick, 150); }
+  else { clearInterval(tickTimer); setState('متوقف'); subAr.classList.remove('show'); }
+};
+$('fs').onclick = () => { if (document.fullscreenElement) document.exitFullscreen(); else stage.requestFullscreen().catch(() => {}); };
+document.addEventListener('fullscreenchange', () => setTimeout(layout, 50));
+
+applyStyle(); saveMemory();
+window.__turjuman = {get session(){ return session; }, get memory(){ return memory; }};
+})();
+</script>
+</body>
+</html>
