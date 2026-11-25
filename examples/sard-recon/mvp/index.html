@@ -65,9 +65,25 @@ textarea{width:100%;min-height:90px;background:var(--panel2);border:1px solid va
 .summary{white-space:pre-wrap;font-size:14px;line-height:1.8;color:var(--ink2)}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap}
 details summary{cursor:pointer;color:var(--ink2);font-size:14px}
+/* play mode: the game fills the window, settings one tap away */
+body.play .app{display:block;padding:0;min-height:100vh}
+body.play header,body.play aside,body.play .stats{display:none}
+body.play .stage-wrap{border-radius:0;height:100vh}
+body.play .stage{aspect-ratio:auto;height:100vh}
+.gear{position:fixed;top:12px;left:12px;z-index:5;display:none;background:rgba(0,0,0,.45);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:6px 14px;font-size:13px;cursor:pointer;opacity:.35;transition:opacity .2s}
+.gear:hover{opacity:1}
+body.auto .gear{display:block}
+body.auto:not(.play) .gear{opacity:1;background:var(--accent);color:#04201c;font-weight:700}
+body.auto:not(.play) header{padding-left:120px}
+.go{position:fixed;inset:0;z-index:6;display:none;place-items:center;background:rgba(5,12,20,.86);text-align:center}
+.go.show{display:grid}
+.go button{font-size:22px;padding:16px 40px}
+.go p{color:var(--ink2);max-width:520px;margin:14px auto 0;line-height:1.8}
 </style>
 </head>
 <body>
+<button class="gear" id="gear">الإعدادات</button>
+<div class="go" id="go"><div><button class="btn primary" id="goBtn">ابدأ اللعب بالعربي</button><p id="goMsg">اختر نافذة PS Remote Play إذا طلب منك.</p></div></div>
 <div class="app">
   <header>
     <h1>هنو</h1>
@@ -243,8 +259,9 @@ async function useStream(stream){
   video.srcObject = stream; await video.play().catch(() => {});
   $('empty').style.display = 'none'; layout();
 }
+async function startScreen(){ video.muted = true; await useStream(await navigator.mediaDevices.getDisplayMedia({video: {frameRate: 30}, audio: false})); }
 $('srcScreen').onclick = async () => {
-  try { await useStream(await navigator.mediaDevices.getDisplayMedia({video: {frameRate: 30}, audio: false})); }
+  try { await startScreen(); }
   catch (e) { alert('لم تتم مشاركة النافذة: ' + e.message); }
 };
 $('srcDevice').onclick = async () => {
@@ -557,6 +574,7 @@ $('importFile').onchange = async e => {
 };
 
 // ---------- controls ----------
+function startRunning(){ if (!running) $('toggle').onclick(); }
 $('toggle').onclick = () => {
   if (!video.srcObject) { alert('اختر مصدر الصورة أولًا.'); return; }
   running = !running;
@@ -566,6 +584,23 @@ $('toggle').onclick = () => {
 };
 $('fs').onclick = () => { if (document.fullscreenElement) document.exitFullscreen(); else stage.requestFullscreen().catch(() => {}); };
 document.addEventListener('fullscreenchange', () => setTimeout(layout, 50));
+
+// ---------- one-click play mode: hanu.html?auto=1 (the desktop shortcut opens this) ----------
+$('gear').onclick = () => { document.body.classList.toggle('play'); $('gear').textContent = document.body.classList.contains('play') ? 'الإعدادات' : 'رجوع للعب'; setTimeout(layout, 30); };
+async function autoPlay(){
+  document.body.classList.add('auto', 'play'); $('go').classList.remove('show'); setTimeout(layout, 30);
+  try {
+    await startScreen(); startRunning();
+    if (!$('apiKey').value.trim()) { $('goMsg').textContent = ''; setTimeout(() => { $('gear').onclick(); alert('ضع مفتاح Gemini في خانة "مفتاح Gemini" مرة واحدة، ثم اضغط "رجوع للعب".'); }, 400); }
+    const track = video.srcObject && video.srcObject.getVideoTracks()[0];
+    if (track) track.addEventListener('ended', () => { if (running) $('toggle').onclick(); $('goMsg').textContent = 'توقفت المشاركة. اضغط للبدء من جديد.'; $('go').classList.add('show'); });
+  } catch (e) {
+    $('goMsg').textContent = 'اضغط الزر، ثم اختر نافذة PS Remote Play.';
+    $('go').classList.add('show');
+  }
+}
+$('goBtn').onclick = autoPlay;
+if (new URLSearchParams(location.search).get('auto')) autoPlay();
 
 applyStyle(); saveMemory();
 window.__hanu = {get session(){ return session; }, get memory(){ return memory; }};
