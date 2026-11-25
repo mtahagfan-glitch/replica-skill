@@ -3,11 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ترجمان: ترجمة الألعاب الفورية</title>
+<title>هنو: ترجمة الألعاب الفورية</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Tajawal:wght@500;700&family=IBM+Plex+Sans+Arabic:wght@500;700&family=Noto+Naskh+Arabic:wght@500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.29.0/dist/ort.min.js"></script>
 <style>
 :root{
   --ground:#0b1520; --panel:#111e2b; --panel2:#16283a; --line:rgba(255,255,255,.10);
@@ -69,7 +70,7 @@ details summary{cursor:pointer;color:var(--ink2);font-size:14px}
 <body>
 <div class="app">
   <header>
-    <h1>ترجمان</h1>
+    <h1>هنو</h1>
     <span class="sub">ترجمة عربية فورية فوق ترجمة اللعبة الإنجليزية</span>
     <span class="spacer"></span>
     <button class="btn" id="srcDevice">كرت التقاط</button>
@@ -109,6 +110,10 @@ details summary{cursor:pointer;color:var(--ink2);font-size:14px}
         <select id="dialect"><option value="سعودية بيضاء مفهومة">سعودي</option><option value="فصحى مبسطة">فصحى مبسطة</option><option value="خليجية">خليجي</option></select>
       </label>
       <label class="row">تلطيف الشتائم<input type="checkbox" id="soften" checked></label>
+      <label class="row">محرك القراءة
+        <select id="engine"><option value="paddle">PaddleOCR (أدق)</option><option value="tesseract">Tesseract (احتياطي)</option></select>
+      </label>
+      <label class="row">صوت اللعبة من الكمبيوتر<input type="checkbox" id="audio" checked></label>
       <details><summary>قاموس اللعبة (إنجليزي = عربي)</summary>
         <textarea id="glossary"></textarea>
         <p class="hint">سطر لكل اسم. يُرسل مع كل طلب ترجمة حتى تبقى الأسماء ثابتة.</p>
@@ -148,8 +153,8 @@ details summary{cursor:pointer;color:var(--ink2);font-size:14px}
 'use strict';
 const $ = id => document.getElementById(id);
 const store = {
-  get(k, d){ try { const v = localStorage.getItem('turjuman.' + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
-  set(k, v){ try { localStorage.setItem('turjuman.' + k, JSON.stringify(v)); } catch {} }
+  get(k, d){ try { const v = localStorage.getItem('hanu.' + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v){ try { localStorage.setItem('hanu.' + k, JSON.stringify(v)); } catch {} }
 };
 
 const GTA_GLOSSARY = `Franklin = فرانكلين
@@ -176,7 +181,7 @@ let session = [];                                   // {en, ar, src, t}
 const ctxLines = [];
 
 // ---------- settings ----------
-const fields = ['provider','apiKey','model','dialect','soften','glossary','font','size','color','bg','bgAlpha','showEn','hideRegion'];
+const fields = ['provider','apiKey','model','dialect','soften','engine','audio','glossary','font','size','color','bg','bgAlpha','showEn','hideRegion'];
 const settings = store.get('settings', {});
 if (!settings.glossary) settings.glossary = GTA_GLOSSARY;
 for (const f of fields) {
@@ -253,10 +258,20 @@ $('srcDevice').onclick = async () => {
       const pick = parseInt(prompt('اختر رقم كرت الالتقاط:\n' + names, '1'), 10);
       if (devices[pick - 1]) id = devices[pick - 1].deviceId;
     }
-    await useStream(await navigator.mediaDevices.getUserMedia({video: {deviceId: id ? {exact: id} : undefined, width: {ideal: 1920}, height: {ideal: 1080}, frameRate: {ideal: 60}}}));
+    const vdev = devices.find(d => d.deviceId === id);
+    const all = await navigator.mediaDevices.enumerateDevices();
+    // the capture card's own audio input usually shares its groupId or part of its name
+    const adev = all.find(d => d.kind === 'audioinput' && vdev && (d.groupId === vdev.groupId || (vdev.label && d.label && d.label.split(' ')[0] === vdev.label.split(' ')[0])));
+    const wantAudio = $('audio').checked;
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {deviceId: id ? {exact: id} : undefined, width: {ideal: 1920}, height: {ideal: 1080}, frameRate: {ideal: 60}},
+      audio: wantAudio ? {deviceId: adev ? {exact: adev.deviceId} : undefined, echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 2} : false
+    });
+    video.muted = !wantAudio;
+    await useStream(stream);
   } catch (e) { alert('لم نصل إلى كرت الالتقاط: ' + e.message); }
 };
-$('srcDemo').onclick = () => useStream(demoStream());
+$('srcDemo').onclick = () => { video.muted = true; useStream(demoStream()); };
 
 // A built-in test scene: a moving "city" and white English subtitles at the bottom, like most console games.
 function demoStream(){
@@ -282,12 +297,14 @@ function demoStream(){
 
 // ---------- capture + change detection ----------
 const crop = document.createElement('canvas'), cg = crop.getContext('2d', {willReadFrequently: true});
+const colorCrop = document.createElement('canvas'), ccg = colorCrop.getContext('2d');
 function grab(){
   const vw = video.videoWidth, vh = video.videoHeight; if (!vw) return null;
   const sx = Math.round(reg.x * vw), sy = Math.round(reg.y * vh), sw = Math.round(reg.w * vw), sh = Math.round(reg.h * vh);
   const scale = sh < 140 ? 140 / sh : 1;                 // OCR likes letters 30 to 60 px tall
   crop.width = Math.round(sw * scale); crop.height = Math.round(sh * scale);
   cg.drawImage(video, sx, sy, sw, sh, 0, 0, crop.width, crop.height);
+  colorCrop.width = crop.width; colorCrop.height = crop.height; ccg.drawImage(crop, 0, 0);
   const img = cg.getImageData(0, 0, crop.width, crop.height), d = img.data;
   // Subtitles are white letters with a dark outline or shadow. Keep a bright pixel only when a dark pixel
   // sits within R px of it: bright sky, roads and HUD without an outline drop out.
@@ -341,11 +358,17 @@ async function tick(){
 async function runOcr(appearedAt){
   ocrBusy = true;
   try {
-    if (!worker) { setState('تحميل OCR...'); worker = await Tesseract.createWorker('eng', 1); await worker.setParameters({tessedit_pageseg_mode: '6', preserve_interword_spaces: '1'}); setState('يعمل', true); }
+    let text;
     const t = performance.now();
-    const {data} = await worker.recognize(crop);
+    if ($('engine').value === 'paddle') {
+      try { text = await paddleRead(crop); }
+      catch (e) { console.error(e); setState('تعذّر Paddle، تحويل إلى Tesseract'); $('engine').value = 'tesseract'; settings.engine = 'tesseract'; store.set('settings', settings); return; }
+    } else {
+      if (!worker) { setState('تحميل OCR...'); worker = await Tesseract.createWorker('eng', 1); await worker.setParameters({tessedit_pageseg_mode: '6', preserve_interword_spaces: '1'}); setState('يعمل', true); }
+      text = (await worker.recognize(crop)).data.text;
+    }
     $('ocrMs').textContent = Math.round(performance.now() - t);
-    const en = clean(data.text);
+    const en = clean(text);
     if (!en) return;
     const norm = normalize(en);
     if (norm === lastLineNorm || similarity(norm, lastLineNorm) > 0.9) return;
@@ -353,6 +376,71 @@ async function runOcr(appearedAt){
     await show(en, norm, appearedAt);
   } catch (e) { console.error(e); setState('خطأ OCR'); }
   finally { ocrBusy = false; }
+}
+// ---------- PaddleOCR PP-OCRv5 English recogniser (Apache-2.0), run in the browser with ONNX Runtime ----------
+const PADDLE = 'https://huggingface.co/PaddlePaddle/en_PP-OCRv5_mobile_rec_onnx/resolve/main/';
+let paddle = null;
+const PADDLE_COLOR = true;  // the recogniser was trained on real images: give it the colour line, the mask only finds where it is
+async function paddleLoad(){
+  if (paddle) return paddle;
+  setState('تحميل PaddleOCR (8MB، مرة واحدة)...');
+  ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.29.0/dist/';
+  ort.env.wasm.numThreads = 1; ort.env.logLevel = 'error';
+  const [yml, session] = await Promise.all([
+    fetch(PADDLE + 'inference.yml').then(r => r.text()),
+    ort.InferenceSession.create(PADDLE + 'inference.onnx', {executionProviders: ['wasm'], logSeverityLevel: 3})
+  ]);
+  const dict = [], lines = yml.split('\n'); let inDict = false;
+  for (const l of lines) {
+    if (/^\s*character_dict:/.test(l)) { inDict = true; continue; }
+    if (!inDict) continue;
+    const m = l.match(/^\s*- (.*)$/); if (!m) break;
+    let v = m[1]; if (/^'.*'$/.test(v)) v = v.slice(1, -1).replace(/''/g, "'"); else if (/^".*"$/.test(v)) v = JSON.parse(v);
+    dict.push(v);
+  }
+  paddle = {session, dict, input: session.inputNames[0]};
+  setState('يعمل', true);
+  return paddle;
+}
+const lineCanvas = document.createElement('canvas'), lg = lineCanvas.getContext('2d', {willReadFrequently: true});
+let paddleSrc = null;
+async function paddleRead(src){
+  paddleSrc = PADDLE_COLOR ? colorCrop : src;
+  const {session, dict, input} = await paddleLoad();
+  const w = src.width, h = src.height, d = cg.getImageData(0, 0, w, h).data;
+  // split the strip into text lines by the rows that hold ink
+  const rows = new Uint32Array(h), cols = new Uint32Array(w);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4] === 0) { rows[y]++; cols[x]++; }
+  const minInk = Math.max(2, w * 0.003), bands = [];
+  for (let y = 0, start = -1, gap = 0; y <= h; y++) {
+    const ink = y < h && rows[y] >= minInk;
+    if (ink) { if (start < 0) start = y; gap = 0; }
+    else if (start >= 0 && (++gap > 3 || y === h)) { const end = y - gap + 1; if (end - start >= 8) bands.push([start, end]); start = -1; gap = 0; }
+  }
+  const out = [];
+  for (const [y0, y1] of bands) {
+    let x0 = w, x1 = 0;
+    for (let y = y0; y < y1; y++) for (let x = 0; x < w; x++) if (d[(y * w + x) * 4] === 0) { if (x < x0) x0 = x; if (x > x1) x1 = x; }
+    const pad = Math.round((y1 - y0) * 0.25), bx = Math.max(0, x0 - pad), by = Math.max(0, y0 - pad);
+    const bw = Math.min(w, x1 + pad + 1) - bx, bh = Math.min(h, y1 + pad) - by;
+    const H = 48, W = Math.min(3200, Math.max(48, Math.ceil(H * bw / bh)));
+    lineCanvas.width = W; lineCanvas.height = H;
+    lg.fillStyle = '#fff'; lg.fillRect(0, 0, W, H); lg.drawImage(paddleSrc, bx, by, bw, bh, 0, 0, W, H);
+    const px = lg.getImageData(0, 0, W, H).data, t = new Float32Array(3 * H * W);
+    for (let i = 0, n = H * W; i < n; i++) { t[i] = (px[i * 4 + 2] / 255 - 0.5) / 0.5; t[n + i] = (px[i * 4 + 1] / 255 - 0.5) / 0.5; t[2 * n + i] = (px[i * 4] / 255 - 0.5) / 0.5; } // BGR
+    const res = await session.run({[input]: new ort.Tensor('float32', t, [1, 3, H, W])});
+    const o = res[session.outputNames[0]], [, T, C] = o.dims, p = o.data;
+    const chars = C === dict.length + 2 ? ['', ...dict, ' '] : ['', ...dict];
+    let txt = '', prev = -1;
+    for (let s0 = 0; s0 < T; s0++) {
+      let best = 0, bv = -Infinity;
+      for (let c = 0; c < C; c++) { const v = p[s0 * C + c]; if (v > bv) { bv = v; best = c; } }
+      if (best !== 0 && best !== prev) txt += chars[best] || '';
+      prev = best;
+    }
+    out.push(txt.trim());
+  }
+  return out.join(' ');
 }
 function clean(s){
   s = s.replace(/[|_~`{}\[\]<>\\\u2014\u2013]/g, ' ').replace(/\s+/g, ' ').replace(/^[\s.,;:'"-]+|[\s,;:'"-]+$/g, '').trim();
@@ -460,7 +548,7 @@ $('summaryBtn').onclick = async () => {
 };
 $('exportBtn').onclick = () => {
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(memory, null, 1)], {type: 'application/json'}));
-  a.download = 'turjuman-memory.json'; a.click(); URL.revokeObjectURL(a.href);
+  a.download = 'hanu-memory.json'; a.click(); URL.revokeObjectURL(a.href);
 };
 $('importBtn').onclick = () => $('importFile').click();
 $('importFile').onchange = async e => {
@@ -480,7 +568,7 @@ $('fs').onclick = () => { if (document.fullscreenElement) document.exitFullscree
 document.addEventListener('fullscreenchange', () => setTimeout(layout, 50));
 
 applyStyle(); saveMemory();
-window.__turjuman = {get session(){ return session; }, get memory(){ return memory; }};
+window.__hanu = {get session(){ return session; }, get memory(){ return memory; }};
 })();
 </script>
 </body>
