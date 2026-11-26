@@ -138,6 +138,15 @@ body.auto:not(.play) header{padding-left:120px}
     </section>
 
     <section class="card">
+      <h2>التلفزيون (Android TV)</h2>
+      <label class="row">العنوان<input type="text" id="tvAddr" placeholder="192.168.1.20" inputmode="decimal" dir="ltr"></label>
+      <label class="row">الرمز<input type="text" id="tvCode" placeholder="123456" inputmode="numeric" dir="ltr"></label>
+      <label class="row">أرسل الترجمة للتلفزيون<input type="checkbox" id="tvOn" checked></label>
+      <div class="toolbar"><button class="btn" id="tvTest">اختبر الاتصال</button></div>
+      <p class="hint" id="tvStatus">افتح تطبيق هنو على التلفزيون: يعرض العنوان والرمز.</p>
+    </section>
+
+    <section class="card">
       <h2>شكل الترجمة</h2>
       <label class="row">الخط
         <select id="font"><option>Cairo</option><option>Tajawal</option><option>IBM Plex Sans Arabic</option><option>Noto Naskh Arabic</option></select>
@@ -197,7 +206,7 @@ let session = [];                                   // {en, ar, src, t}
 const ctxLines = [];
 
 // ---------- settings ----------
-const fields = ['provider','apiKey','model','dialect','soften','engine','audio','glossary','font','size','color','bg','bgAlpha','showEn','hideRegion'];
+const fields = ['tvAddr','tvCode','tvOn','provider','apiKey','model','dialect','soften','engine','audio','glossary','font','size','color','bg','bgAlpha','showEn','hideRegion'];
 const settings = store.get('settings', {});
 if (!settings.glossary) settings.glossary = GTA_GLOSSARY;
 for (const f of fields) {
@@ -378,7 +387,7 @@ async function tick(){
   const now = performance.now();
   if (g.ink < 0.002) {                                   // nothing on screen: hide after a short grace
     if (!blankSince) blankSince = now;
-    if (now - blankSince > 500) { subAr.classList.remove('show'); lastLineNorm = ''; }
+    if (now - blankSince > 500) { if (subAr.classList.contains('show')) sendTv('', ''); subAr.classList.remove('show'); lastLineNorm = ''; }
     lastSig = g.sig; stableTicks = 0; return;
   }
   blankSince = 0;
@@ -535,6 +544,36 @@ async function myMemory(en){
   return (d.responseData && d.responseData.translatedText) || '';
 }
 
+// ---------- TV: send each line to Hanu TV on the home network ----------
+function tvBase(){
+  const a = $('tvAddr').value.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+  return a ? 'http://' + (a.includes(':') ? a : a + ':8787') : '';
+}
+let tvOk = null;
+async function sendTv(ar, en){
+  const base = tvBase(); if (!base || !$('tvOn').checked) return;
+  const body = JSON.stringify({
+    code: $('tvCode').value.trim(), ar, en,
+    region: reg,
+    style: {scale: (+$('size').value || 100) / 100, color: $('color').value, bg: $('bg').value, alpha: (+$('bgAlpha').value) / 100, showEn: $('showEn').checked}
+  });
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 1500);
+  try {
+    const r = await fetch(base + '/line', {method: 'POST', headers: {'Content-Type': 'text/plain'}, body, signal: ctl.signal});
+    tvOk = r.ok; if (!r.ok) $('tvStatus').textContent = r.status === 403 ? 'الرمز غير صحيح. انظر الرمز على التلفزيون.' : 'التلفزيون رفض الطلب (' + r.status + ').';
+  } catch (e) { if (tvOk !== false) $('tvStatus').textContent = 'لا يصل للتلفزيون. تأكد أن هنو مفتوح عليه وأن الماك على نفس الواي فاي.'; tvOk = false; }
+  finally { clearTimeout(timer); }
+}
+$('tvTest').onclick = async () => {
+  const base = tvBase(); if (!base) { $('tvStatus').textContent = 'اكتب العنوان الظاهر على التلفزيون.'; return; }
+  $('tvStatus').textContent = 'جاري الاتصال...';
+  try {
+    const r = await fetch(base + '/ping?code=' + encodeURIComponent($('tvCode').value.trim()));
+    if (r.ok) { $('tvStatus').textContent = 'متصل ✓ يظهر الآن سطر تجربة على التلفزيون.'; await sendTv('هنو متصل. هنا تظهر الترجمة العربية.', ''); setTimeout(() => sendTv('', ''), 5000); }
+    else $('tvStatus').textContent = r.status === 403 ? 'الرمز غير صحيح.' : 'رد غير متوقع: ' + r.status;
+  } catch (e) { console.warn('tv ping', e); $('tvStatus').textContent = 'لا يصل للتلفزيون. إذا سأل Chrome أو الماك عن "الشبكة المحلية" اضغط سماح، ثم جرّب مرة ثانية.'; }
+};
+
 // ---------- display + log ----------
 async function show(en, norm, appearedAt){
   let hit = fromMemory(norm), ar, src;
@@ -548,6 +587,7 @@ async function show(en, norm, appearedAt){
   subArText.innerHTML = ''; subArText.append(ar);
   if ($('showEn').checked) { const s = document.createElement('small'); s.textContent = en; subArText.append(s); }
   subAr.classList.add('show');
+  sendTv(ar, en);
   $('e2eMs').textContent = Math.round(performance.now() - appearedAt);
   const entry = {en, ar, src, norm, t: Date.now()}; session.push(entry); addLog(entry);
 }

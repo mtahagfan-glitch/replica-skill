@@ -1,7 +1,22 @@
 #!/bin/bash
 # Hanu for macOS: puts hanu.html in ~/Hanu and a one-click "هنو" app on the Desktop.
 # Run once from Terminal:  bash ~/Downloads/install-hanu-mac.sh
+# For the TV app:          bash ~/Downloads/install-hanu-mac.sh tv   (serves hanu-tv.apk to the TV's Downloader app)
 set -e
+
+if [ "${1:-}" = "tv" ]; then
+  APK="$(ls -t "$HOME"/Downloads/hanu-tv*.apk 2>/dev/null | head -1 || true)"
+  if [ -z "$APK" ]; then echo "لم أجد hanu-tv.apk في التنزيلات. نزّله ثم أعد الأمر."; exit 1; fi
+  mkdir -p "$HOME/Hanu/tv" && cp "$APK" "$HOME/Hanu/tv/h.apk"
+  IP="$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || true)"
+  echo ""
+  echo "  في التلفزيون افتح Downloader واكتب هذا العنوان بالضبط ثم Go:"
+  echo ""
+  echo "      http://${IP:-عنوان-الماك}:8000/h.apk"
+  echo ""
+  echo "  اترك هذه النافذة مفتوحة حتى يكتمل التثبيت في التلفزيون، ثم اضغط Ctrl + C."
+  cd "$HOME/Hanu/tv" && exec python3 -m http.server 8000
+fi
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 # the newest download wins: browsers rename repeats to hanu (1).html, hanu-2.html ...
@@ -48,10 +63,12 @@ if ! pgrep -xq "PS Remote Play"; then
   open -a "PS Remote Play" 2>/dev/null || osascript -e 'display alert "لم أجد PS Remote Play" message "ثبّته من موقع PlayStation ثم أعد المحاولة."'
   sleep 6
 fi
-# 2. open Hanu in its own Chrome window: full screen, shares the PS Remote Play window by itself, starts translating
-exec "$CHROME" \
+# 2. open Hanu in its own Chrome window: full screen, shares the PS Remote Play window by itself, starts translating.
+#    caffeinate keeps the Mac awake while Hanu runs; the three --disable flags keep it reading when its window is covered.
+exec caffeinate -dis "$CHROME" \
   --user-data-dir="$HOME/Library/Application Support/Hanu-Chrome" \
   --no-first-run --no-default-browser-check --start-fullscreen \
+  --disable-background-timer-throttling --disable-renderer-backgrounding --disable-backgrounding-occluded-windows \
   --auto-select-desktop-capture-source="PS Remote Play" \
   --app="file://$HOME/Hanu/hanu.html?auto=1"
 RUN
