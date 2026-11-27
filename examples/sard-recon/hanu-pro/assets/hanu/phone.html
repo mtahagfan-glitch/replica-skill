@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>هنو: الإعدادات</title>
+<style>
+:root{--bg:#0b1520;--card:#111e2b;--card2:#16283a;--line:rgba(255,255,255,.1);--ink:#eef3f7;--ink2:rgba(238,243,247,.7);--ink3:rgba(238,243,247,.5);--accent:#2bb3a3;--warn:#f2b84b;--bad:#ff8a7a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 -apple-system,system-ui,"SF Arabic",Tahoma,sans-serif;padding:16px 16px 48px}
+h1{font-size:26px;margin:4px 0 2px}
+.sub{color:var(--ink3);font-size:14px;margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:12px 0}
+.card h2{font-size:17px;margin:0 0 8px}
+.n{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--accent);color:#04201c;font-size:13px;font-weight:700;margin-left:6px}
+ol{margin:6px 0;padding-right:20px;color:var(--ink2)}
+li{margin:4px 0}
+input,select,textarea{width:100%;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px;font:inherit}
+textarea{min-height:110px;direction:ltr;font-size:14px}
+label{display:block;margin:10px 0 4px;color:var(--ink2);font-size:14px}
+.row{display:flex;gap:10px;align-items:center;justify-content:space-between;margin:8px 0}
+.row input[type=checkbox]{width:22px;height:22px}
+button,.btn{display:inline-block;background:var(--card2);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:10px 18px;font:inherit;text-decoration:none;cursor:pointer;margin-top:8px}
+.primary{background:var(--accent);color:#04201c;border-color:transparent;font-weight:700}
+.ok{color:var(--accent)} .bad{color:var(--bad)} .warn{color:var(--warn)}
+.mono{direction:ltr;font-family:ui-monospace,Menlo,monospace;font-size:14px;word-break:break-all}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:14px;color:var(--ink2)}
+.stats b{color:var(--ink);font-variant-numeric:tabular-nums}
+.line{border-top:1px solid var(--line);padding:8px 0}
+.line .en{direction:ltr;text-align:left;color:var(--ink3);font-size:13px}
+.line button{padding:4px 12px;font-size:13px;margin:4px 0 0}
+input[type=range]{padding:0;direction:ltr}
+#lock{display:none}
+</style>
+</head>
+<body>
+<h1>هنو</h1>
+<div class="sub">إعدادات التلفزيون من جوالك</div>
+
+<div class="card" id="lock">
+  <h2>الرمز</h2>
+  <label>اكتب الرمز الظاهر على التلفزيون (6 أرقام)</label>
+  <input id="code" inputmode="numeric" maxlength="6" dir="ltr">
+  <button class="primary" id="saveCode">دخول</button>
+  <p id="codeMsg" class="bad"></p>
+</div>
+
+<div id="app" style="display:none">
+  <div class="card">
+    <h2><span class="n">1</span>ربط حساب البلايستيشن</h2>
+    <p id="acct" class="ok" style="display:none"></p>
+    <ol>
+      <li>اضغط الزر وسجّل دخولك بحساب PlayStation.</li>
+      <li>بعد الدخول تفتح صفحة فاضية أو فيها كلمة redirect. هذا طبيعي.</li>
+      <li>اضغط على شريط العنوان فوق، انسخ الرابط كاملًا، وارجع هنا.</li>
+    </ol>
+    <a class="btn" id="login" target="_blank" rel="noopener">افتح تسجيل دخول PlayStation</a>
+    <label>الصق الرابط هنا</label>
+    <input id="redirect" dir="ltr" placeholder="https://remoteplay.dl.playstation.net/remoteplay/redirect?code=...">
+    <button class="primary" id="psnBtn">اربط</button>
+    <p id="psnMsg"></p>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">2</span>الترجمة</h2>
+    <label>مفتاح Gemini <span id="keyState"></span></label>
+    <input id="key" type="password" dir="ltr" placeholder="AIza...">
+    <label>اللهجة</label>
+    <select id="dialect"><option value="سعودية بيضاء مفهومة">سعودي</option><option value="خليجية">خليجي</option><option value="فصحى مبسطة">فصحى مبسطة</option></select>
+    <div class="row"><span>تلطيف الشتائم</span><input type="checkbox" id="soften"></div>
+    <div class="row"><span>الترجمة شغالة</span><input type="checkbox" id="enabled"></div>
+    <label>قاموس الأسماء (إنجليزي = عربي)</label>
+    <textarea id="glossary"></textarea>
+    <label>النموذج</label>
+    <input id="model" dir="ltr">
+    <button class="primary" id="saveTr">احفظ</button> <span id="trMsg"></span>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">3</span>مكان الترجمة وشكلها</h2>
+    <p class="sub">حرّك وأنت تشوف التلفزيون: المستطيل لازم يغطي الترجمة الإنجليزية.</p>
+    <label>من اليسار <span id="vx"></span></label><input type="range" id="rx" min="0" max="0.9" step="0.01">
+    <label>من الأعلى <span id="vy"></span></label><input type="range" id="ry" min="0.4" max="0.97" step="0.01">
+    <label>العرض <span id="vw"></span></label><input type="range" id="rw" min="0.1" max="1" step="0.01">
+    <label>الارتفاع <span id="vh"></span></label><input type="range" id="rh" min="0.04" max="0.4" step="0.01">
+    <label>حجم الخط <span id="vs"></span></label><input type="range" id="scale" min="0.5" max="2" step="0.05">
+    <div class="row"><span>إظهار الإنجليزي صغيرًا</span><input type="checkbox" id="showEn"></div>
+  </div>
+
+  <div class="card">
+    <h2>الحالة الآن</h2>
+    <div class="stats">
+      <span>القراءة <b id="sOcr">-</b> ms</span>
+      <span>الترجمة <b id="sTr">-</b> ms</span>
+      <span>من الظهور إلى العربي <b id="sE2e">-</b> ms</span>
+      <span>ذاكرة الترجمة <b id="sMem">-</b></span>
+    </div>
+    <p id="sErr" class="warn"></p>
+    <div id="lines"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+let code = '';
+try { code = localStorage.getItem('hanu.code') || ''; } catch {}
+const api = async (path, body) => {
+  const r = await fetch(path + (body ? '' : (path.includes('?') ? '&' : '?') + 'code=' + encodeURIComponent(code)),
+    body ? {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({...body, code})} : {});
+  if (r.status === 403) { showLock('الرمز غير صحيح'); throw new Error('code'); }
+  return r.json();
+};
+function showLock(msg){ $('lock').style.display = 'block'; $('app').style.display = 'none'; $('codeMsg').textContent = msg || ''; }
+$('saveCode').onclick = async () => {
+  code = $('code').value.trim(); try { localStorage.setItem('hanu.code', code); } catch {}
+  try { await load(); } catch {}
+};
+
+let loaded = false;
+async function load(){
+  const s = await api('/api/state');
+  $('lock').style.display = 'none'; $('app').style.display = 'block';
+  if (!loaded) {
+    loaded = true;
+    $('login').href = s.loginUrl;
+    $('dialect').value = s.dialect; $('soften').checked = s.soften; $('enabled').checked = s.enabled;
+    $('glossary').value = s.glossary; $('model').value = s.model; $('showEn').checked = s.showEn;
+    $('rx').value = s.region.x; $('ry').value = s.region.y; $('rw').value = s.region.w; $('rh').value = s.region.h; $('scale').value = s.scale;
+    labels();
+  }
+  $('keyState').textContent = s.hasKey ? '(محفوظ ✓)' : '(غير موجود)';
+  $('keyState').className = s.hasKey ? 'ok' : 'warn';
+  if (s.accountId) { $('acct').style.display = 'block'; $('acct').textContent = 'الحساب مربوط ✓ ارجع للتلفزيون وأكمل إضافة البلايستيشن.'; }
+  if (s.stats) {
+    $('sOcr').textContent = s.stats.ocrMs; $('sTr').textContent = s.stats.trMs; $('sE2e').textContent = s.stats.e2eMs;
+    $('sErr').textContent = s.stats.error === 'no-key' ? 'ضع مفتاح Gemini في القسم 2.' : (s.stats.error ? 'آخر خطأ: ' + s.stats.error : '');
+  }
+  $('sMem').textContent = s.memory;
+  const box = $('lines'); box.innerHTML = '';
+  for (const l of s.lines || []) {
+    const d = document.createElement('div'); d.className = 'line';
+    const en = document.createElement('div'); en.className = 'en'; en.textContent = l.en;
+    const ar = document.createElement('div'); ar.textContent = l.ar;
+    const b = document.createElement('button'); b.textContent = 'صحّح';
+    b.onclick = async () => { const v = prompt('الترجمة الصحيحة:', l.ar); if (v) { await api('/api/correct', {en: l.en, ar: v}); ar.textContent = v; } };
+    d.append(en, ar, b); box.append(d);
+  }
+}
+$('psnBtn').onclick = async () => {
+  $('psnMsg').className = ''; $('psnMsg').textContent = 'جاري الربط...';
+  const r = await api('/api/psn', {url: $('redirect').value.trim()});
+  if (r.ok) { $('psnMsg').className = 'ok'; $('psnMsg').textContent = 'تم ✓ ارجع للتلفزيون: إضافة البلايستيشن، والـ Account ID مكتوب لحاله.'; }
+  else { $('psnMsg').className = 'bad'; $('psnMsg').textContent = r.error; }
+};
+$('saveTr').onclick = async () => {
+  const body = {dialect: $('dialect').value, soften: $('soften').checked, enabled: $('enabled').checked, glossary: $('glossary').value, model: $('model').value};
+  if ($('key').value.trim()) body.geminiKey = $('key').value.trim();
+  await api('/api/config', body); $('key').value = ''; $('trMsg').className = 'ok'; $('trMsg').textContent = 'تم الحفظ ✓';
+  setTimeout(() => $('trMsg').textContent = '', 2500); load();
+};
+function labels(){
+  const pct = v => Math.round(v * 100) + '%';
+  $('vx').textContent = pct($('rx').value); $('vy').textContent = pct($('ry').value);
+  $('vw').textContent = pct($('rw').value); $('vh').textContent = pct($('rh').value); $('vs').textContent = pct($('scale').value);
+}
+let regionTimer = null;
+for (const id of ['rx','ry','rw','rh','scale','showEn']) $(id).addEventListener('input', () => {
+  labels(); clearTimeout(regionTimer);
+  regionTimer = setTimeout(() => api('/api/config', {region: {x: +$('rx').value, y: +$('ry').value, w: +$('rw').value, h: +$('rh').value}, scale: +$('scale').value, showEn: $('showEn').checked}), 150);
+});
+
+if (code) load().catch(() => showLock()); else showLock();
+setInterval(() => { if (loaded) load().catch(() => {}); }, 2000);
+})();
+</script>
+</body>
+</html>
